@@ -1,0 +1,10 @@
+.DS_Store
+Sources/main.swift
+.build
+Packages
+*.xcodeproj
+Package.pins
+Package.resolved
+DerivedData
+XCTestManifests.swift
+.swiftpm
