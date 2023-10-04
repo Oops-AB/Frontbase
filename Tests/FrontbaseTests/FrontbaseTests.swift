@@ -78,6 +78,7 @@ class FrontbaseTests: XCTestCase {
     struct Moon: Decodable {
         let name: String
         let cheese: String?
+        let radius: Decimal?
     }
 
     func testNull() throws {
@@ -102,6 +103,30 @@ class FrontbaseTests: XCTestCase {
         XCTAssertEqual (moons[0].cheese, "Roquefort")
         XCTAssertEqual (moons[1].name, "Phobos")
         XCTAssertEqual (moons[1].cheese, nil)
+    }
+
+    func testDecimal() throws {
+        try self.db.create (table: "moons")
+            .column ("id", type: .int, .primaryKey)
+            .column ("name", type: .custom (SQLRaw ("VARCHAR (1000)")))
+            .column ("radius", type: .custom (SQLRaw ("DECIMAL (10, 4)")))
+            .run().wait()
+        try self.db.insert (into: "moons")
+            .columns ("id", "name", "radius")
+            .values (SQLLiteral.default, SQLBind ("Luna"), SQLBind (Decimal (1737.4)))
+            .values (SQLLiteral.default, SQLBind ("Phobos"), SQLBind (Decimal (11.2667)))
+            .run().wait()
+        let moons = try self.db.select()
+            .column ("*")
+            .from ("moons")
+            .orderBy ("name", .ascending)
+            .all (decoding: Moon.self)
+            .wait()
+        XCTAssertEqual (moons.count, 2)
+        XCTAssertEqual (moons[0].name, "Luna")
+        XCTAssertEqual (moons[0].radius, 1737.4)
+        XCTAssertEqual (moons[1].name, "Phobos")
+        XCTAssertEqual (moons[1].radius, 11.2667)
     }
 
     var db: SQLDatabase {
