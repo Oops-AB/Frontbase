@@ -51,7 +51,7 @@ public struct FrontbaseDataDecoder {
             guard case .blob (let blob) = self.data else {
                 fatalError()
             }
-            let data = blob.data()
+            let data = try blob.data()
             let unwrapper = try JSONDecoder().decode (DecoderUnwrapper.self, from: data)
             return try unwrapper.decoder.container (keyedBy: Key.self)
         }

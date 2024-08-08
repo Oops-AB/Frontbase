@@ -91,7 +91,7 @@ extension FrontbaseData {
     var blobData: Data? {
         switch (self) {
             case .blob (let blob):
-                return blob.data()
+                return try? blob.data()
 
             default:
                 return nil

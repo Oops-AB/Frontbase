@@ -11,7 +11,7 @@ let package = Package(
     ],
     dependencies: [
         // 🇩🇰 A Swift module for accessing Frontbase databases.
-        .package(url: "https://github.com/Oops-AB/FrontbaseNIO.git", from: "1.2.2"),
+        .package(url: "https://github.com/Oops-AB/FrontbaseNIO.git", from: "1.3.1"),
 
         // 🗄 Core services for creating database integrations.
         .package(url: "https://github.com/vapor/sql-kit.git", from: "3.0.0"),
