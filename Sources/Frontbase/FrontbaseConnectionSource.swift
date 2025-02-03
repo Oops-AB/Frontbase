@@ -34,7 +34,7 @@ public struct FrontbaseConfiguration {
     }
 }
 
-extension FrontbaseConnection: ConnectionPoolItem { }
+extension FrontbaseConnection: @retroactive ConnectionPoolItem { }
 
 
 private extension ObjectIdentifier {
