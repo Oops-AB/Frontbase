@@ -8,7 +8,11 @@ import Foundation
 public struct FrontbaseDataDecoder {
     /// Creates a new `FrontbaseDataDecoder`.
     public init() { }
-    
+
+    enum FrontbaseDataError: Error {
+        case inconvertible
+    }
+
     /// Decodes `Decodable` types from `FrontbaseData`.
     ///
     ///     let string = try FrontbaseDecoder().decode(String.self, from: .text("Hello"))
@@ -20,7 +24,10 @@ public struct FrontbaseDataDecoder {
     /// - returns: Instance of decoded type.
     public func decode<D> (_ type: D.Type, from data: FrontbaseData) throws -> D where D: Decodable {
         if let convertible = type as? FrontbaseDataConvertible.Type {
-            return convertible.init (frontbaseData: data) as! D
+            guard let value = convertible.init (frontbaseData: data) as? D else {
+                throw FrontbaseDataError.inconvertible
+            }
+            return value
         }
         return try D(from: _Decoder(data: data))
     }

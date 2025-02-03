@@ -5,7 +5,7 @@
 //  Created by Johan Carlberg on 2019-10-09.
 //
 
-extension FrontbaseConnection: SQLDatabase {
+extension FrontbaseConnection: @retroactive SQLDatabase {
     public var dialect: SQLDialect {
         return FrontbaseDialect()
     }

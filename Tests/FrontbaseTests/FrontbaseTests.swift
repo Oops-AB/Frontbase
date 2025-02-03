@@ -1,5 +1,5 @@
 import Logging
-import Frontbase
+@testable import Frontbase
 import NIO
 import SQLKitBenchmark
 import XCTest
@@ -127,6 +127,42 @@ class FrontbaseTests: XCTestCase {
         XCTAssertEqual (moons[0].radius, 1737.4)
         XCTAssertEqual (moons[1].name, "Phobos")
         XCTAssertEqual (moons[1].radius, 11.2667)
+    }
+
+    struct RadiantMoon: Decodable {
+        let name: String
+        let cheese: String?
+        let radius: Decimal
+    }
+    struct BadMoon: Decodable {
+        let name: String
+        let cheese: String?
+        let radius: Decimal
+    }
+
+    func testDecodingNull() throws {
+        try self.db.create (table: "moons")
+            .column ("id", type: .int, .primaryKey)
+            .column ("name", type: .custom (SQLRaw ("VARCHAR (1000)")))
+            .column ("radius", type: .custom (SQLRaw ("DECIMAL (10, 4)")))
+            .run().wait()
+        try self.db.insert (into: "moons")
+            .columns ("id", "name", "radius")
+            .values (SQLLiteral.default, SQLBind ("Luna"), SQLBind (Decimal (1737.4)))
+            .values (SQLLiteral.default, SQLBind ("Phobos"), SQLLiteral.null)
+            .run().wait()
+        XCTAssertThrowsError(try self.db.select()
+            .column ("*")
+            .from ("moons")
+            .orderBy ("name", .ascending)
+            .all (decoding: RadiantMoon.self)
+            .wait()) { error in
+                guard case DecodingError.typeMismatch (_, let context) = error else {
+                    return XCTFail ("Unexpected error \(error.localizedDescription)")
+                }
+                XCTAssertEqual (context.codingPath.count, 0)
+                XCTAssertEqual (context.debugDescription, "Value not convertible (radius)")
+            }
     }
 
     var db: SQLDatabase {
