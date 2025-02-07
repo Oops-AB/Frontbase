@@ -160,7 +160,8 @@ class FrontbaseTests: XCTestCase {
                 guard case DecodingError.typeMismatch (_, let context) = error else {
                     return XCTFail ("Unexpected error \(error.localizedDescription)")
                 }
-                XCTAssertEqual (context.codingPath.count, 0)
+                XCTAssertEqual (context.codingPath.count, 1)
+                XCTAssertEqual (context.codingPath[0].stringValue, "radius")
                 XCTAssertEqual (context.debugDescription, "Value not convertible (radius)")
             }
     }
