@@ -35,24 +35,22 @@ struct TestDatabase {
 }
 
 extension FrontbaseConnection {
-    static func makeFilebasedTest() throws -> FrontbaseConnection {
+    /// Create a temporary in-process, file-based database and create the complete schema defined in DatabaseDefinition.
+    ///
+    /// - Parameter name: A string used as part of the filename of the database file.
+    /// - Returns: A tuple with an open `FrontbaseConnection`,
+    ///   the `MultiThreadedEventLoopGroup` that the connection run on,
+    ///   and a `FrontbaseConnection.Storage` that can be used to open new connections to the same database.
+    ///
+    ///   The event loop group should be properly shutdown after the last connection has been closed.
+    public static func makeFilebasedTest (name: String) async throws -> (FrontbaseConnection, MultiThreadedEventLoopGroup, FrontbaseConnection.Storage) {
         let group = MultiThreadedEventLoopGroup (numberOfThreads: 1)
         let threadPool = NIOThreadPool (numberOfThreads: 1)
-        let conn = try FrontbaseConnection.open (storage: .file (name: "FrontbaseTests", pathName: try temporaryDirectory (template: "/tmp/FrontbaseTests-XXXXXXXXXX") + "/database.fb", username: "_system", password: "", databasePassword: ""), threadPool: threadPool, logger: .init (label: "FrontbaseTests"), on: group.next()).wait()
-        return conn
-    }
+        let storage = FrontbaseConnection.Storage.file (name: name, pathName: try temporaryDirectory (template: "/tmp/\(name)-XXXXXXXXXX") + "/database.fb", username: "_system", password: "", databasePassword: "")
+        let conn = try await FrontbaseConnection.open (storage: storage, threadPool: threadPool, logger: .init (label: name), on: group.next())
+            .get()
 
-    static func temporaryDirectory (template: String) throws -> String {
-        if let templatePointer = template.cString (using: .utf8) {
-            let buffer = UnsafeMutablePointer<Int8>.allocate (capacity: templatePointer.count)
-
-            buffer.assign (from: templatePointer, count: templatePointer.count)
-            if let result = mkdtemp (buffer) {
-                return String (cString: result)
-            }
-        }
-
-        throw UtilitiesError.noTemporaryDirectory
+        return (conn, group, storage)
     }
 
     func destroyTest() {
@@ -87,6 +85,19 @@ extension FrontbaseConnection {
 
     static func temporaryDatabaseName (template: String) throws -> String {
         return template
+    }
+
+    static func temporaryDirectory (template: String) throws -> String {
+        if let templatePointer = template.cString (using: .utf8) {
+            let buffer = UnsafeMutablePointer<Int8>.allocate (capacity: templatePointer.count)
+
+            buffer.update (from: templatePointer, count: templatePointer.count)
+            if let result = mkdtemp (buffer) {
+                return String (cString: result)
+            }
+        }
+
+        throw UtilitiesError.noTemporaryDirectory
     }
 }
 

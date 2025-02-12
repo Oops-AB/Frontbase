@@ -160,50 +160,35 @@ class FrontbaseTests: XCTestCase {
                 guard case DecodingError.typeMismatch (_, let context) = error else {
                     return XCTFail ("Unexpected error \(error.localizedDescription)")
                 }
-                XCTAssertEqual (context.codingPath.count, 0)
+                XCTAssertEqual (context.codingPath.count, 1)
+                XCTAssertEqual (context.codingPath[0].stringValue, "radius")
                 XCTAssertEqual (context.debugDescription, "Value not convertible (radius)")
             }
     }
 
     var db: SQLDatabase {
-        self.connection.sql()
+        self.connection!.sql()
     }
     var benchmark: SQLBenchmarker {
         .init(on: self.db)
     }
-    
-    var eventLoopGroup: EventLoopGroup!
-    var threadPool: NIOThreadPool!
-    var database: TestDatabase!
-    var connection: FrontbaseConnection!
 
-    override func setUp() {
+    var connection: FrontbaseConnection?
+    var melg: MultiThreadedEventLoopGroup?
+
+    override func setUp() async throws {
         XCTAssertTrue(isLoggingConfigured)
-        self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 2)
-        self.threadPool = NIOThreadPool(numberOfThreads: 2)
-        self.threadPool.start()
-        do {
-            let database = try FrontbaseConnection.makeNetworkedDatabase()
-            self.database = database
-        } catch {
-            print ("FrontbaseTests.setUp() failed with \(error)")
-            return
-        }
-        self.connection = try! FrontbaseConnectionSource(
-            configuration: .init(storage: self.database.storage),
-            threadPool: self.threadPool
-        ).makeConnection(logger: .init(label: "se.oops.frontbase.test"), on: self.eventLoopGroup.next()).wait()
+        let (connection, melg, _) = try await FrontbaseConnection.makeFilebasedTest(name: "FrontbaseTests")
+        self.connection = connection
+        self.melg = melg
     }
 
-    override func tearDown() {
-        try! self.connection.close().wait()
+    override func tearDown() async throws {
+        self.connection?.destroyTest()
         self.connection = nil
-        self.database.destroyTest()
-        self.database = nil
-        try! self.threadPool.syncShutdownGracefully()
-        self.threadPool = nil
-        try! self.eventLoopGroup.syncShutdownGracefully()
-        self.eventLoopGroup = nil
+
+        try await self.melg?.shutdownGracefully()
+        self.melg = nil
     }
 }
 
